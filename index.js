@@ -1,20 +1,10 @@
 const http = require('http');
-const path = require('path');
-const fs = require('fs');
-const serveIndex = require('serve-index');
-const serveStatic = require('serve-static');
-const finalhandler = require('finalhandler');
 
 const USERNAME = process.env.FS_USERNAME || 'pogo';
 const PASSWORD = process.env.FS_PASSWORD || 'Vesper!sTheB3st';
 const PORT = process.env.PORT || 3000;
-const SERVE_PATH = process.env.SERVE_PATH || '/data/workspace';
-
-const staticMiddleware = serveStatic(SERVE_PATH, { index: false });
-const indexMiddleware = serveIndex(SERVE_PATH, {
-  icons: true,
-  view: 'details'
-});
+const BACKEND_HOST = process.env.BACKEND_HOST || 'openclaw-main.railway.internal';
+const BACKEND_PORT = process.env.BACKEND_PORT || 9000;
 
 function checkAuth(req) {
   const authHeader = req.headers['authorization'];
@@ -34,13 +24,28 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  const done = finalhandler(req, res);
-  staticMiddleware(req, res, () => {
-    indexMiddleware(req, res, done);
+  const options = {
+    hostname: BACKEND_HOST,
+    port: BACKEND_PORT,
+    path: req.url,
+    method: req.method,
+    headers: req.headers
+  };
+
+  const proxy = http.request(options, (backendRes) => {
+    res.writeHead(backendRes.statusCode, backendRes.headers);
+    backendRes.pipe(res);
   });
+
+  proxy.on('error', (err) => {
+    res.writeHead(502);
+    res.end(`Backend unavailable: ${err.message}\nMake sure fileserver is running inside Vesper on port ${BACKEND_PORT}`);
+  });
+
+  req.pipe(proxy);
 });
 
 server.listen(PORT, () => {
-  console.log(`Vesper FileServer running on port ${PORT}`);
-  console.log(`Serving: ${SERVE_PATH}`);
+  console.log(`Vesper FileServer proxy on port ${PORT}`);
+  console.log(`Proxying to ${BACKEND_HOST}:${BACKEND_PORT}`);
 });
