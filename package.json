@@ -1,0 +1,14 @@
+{
+  "name": "vesper-fileserver",
+  "version": "1.0.0",
+  "description": "Password-protected file browser for Vesper workspace",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "serve-index": "^1.9.1",
+    "serve-static": "^1.15.0",
+    "finalhandler": "^1.2.0"
+  }
+}
